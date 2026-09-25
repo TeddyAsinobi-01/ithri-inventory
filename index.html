@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ithri Inventory</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================ HEADER / NAV ============================ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">IT</span>
+      <div class="brand-text">
+        <strong>Ithri Inventory</strong>
+        <span class="brand-sub">Stock tracker</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="sync-status" id="syncStatus">Connecting…</span>
+      <button class="notif-bell" id="notifBellBtn" aria-label="Notifications">
+        🔔<span class="notif-count" id="notifCount" hidden>0</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabNav">
+    <button class="tab-btn active" data-tab="freshjuice">Fresh Juice</button>
+    <button class="tab-btn" data-tab="raw">Raw Materials</button>
+    <button class="tab-btn" data-tab="other">Other Materials</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+    <button class="tab-btn" data-tab="whatsapp">WhatsApp Report</button>
+    <button class="tab-btn" data-tab="records">Records &amp; History</button>
+    <button class="tab-btn" data-tab="notifications">Notifications <span class="tab-dot" id="tabDot" hidden></span></button>
+  </nav>
+
+  <!-- Low-stock reminder card, shown on top of Fresh Juice tab on load -->
+  <div class="urgent-card" id="urgentCard" hidden>
+    <div class="urgent-head">⚠️ Items need restocking</div>
+    <div class="urgent-list" id="urgentList"></div>
+  </div>
+
+  <main class="content">
+
+    <!-- ============================ FRESH JUICE ============================ -->
+    <section class="tab-panel active" id="panel-freshjuice">
+      <h2>Fresh Juice</h2>
+      <p class="hint">Opening stock carries over from yesterday's closing figure. Locked columns are calculated automatically.</p>
+      <div class="table-scroll">
+        <table class="fj-table" id="fjTable">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <!-- flavour columns injected here -->
+            </tr>
+          </thead>
+          <tbody id="fjTableBody"></tbody>
+        </table>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-primary" id="fjCloseDayBtn">Close today &amp; roll to tomorrow</button>
+      </div>
+    </section>
+
+    <!-- ============================ RAW MATERIALS ============================ -->
+    <section class="tab-panel" id="panel-raw">
+      <h2>Raw Materials</h2>
+
+      <div class="section-block">
+        <h3>Add / use stock</h3>
+        <div class="form-row">
+          <select id="rawMaterialSelect"></select>
+          <div id="rawUnitOptions" class="unit-options"></div>
+          <input type="number" min="0" step="0.01" id="rawAmountInput" placeholder="Amount">
+          <select id="rawActionSelect">
+            <option value="add">Add stock (purchased)</option>
+            <option value="use">Use stock (consumed today)</option>
+          </select>
+          <button class="btn btn-primary" id="rawSubmitBtn">Save</button>
+        </div>
+      </div>
+
+      <h3>Current stock</h3>
+      <div class="card-grid" id="rawCardGrid"></div>
+    </section>
+
+    <!-- ============================ OTHER MATERIALS ============================ -->
+    <section class="tab-panel" id="panel-other">
+      <h2>Other Materials</h2>
+
+      <div class="section-block">
+        <h3>Add stock or record daily usage</h3>
+        <div class="form-row">
+          <select id="otherMaterialSelect"></select>
+          <select id="otherActionSelect">
+            <option value="add">Add stock (purchased / restocked)</option>
+            <option value="use">Daily usage / spoilage entry</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div id="otherUnitOptions" class="unit-options"></div>
+          <div id="otherDailyFields" class="unit-options"></div>
+          <button class="btn btn-primary" id="otherSubmitBtn">Save</button>
+        </div>
+      </div>
+
+      <h3>Current stock</h3>
+      <div class="card-grid" id="otherCardGrid"></div>
+
+      <div class="section-block preform-block">
+        <h3>Preform ↔ Bottle factory</h3>
+        <p class="hint">1 preform bag = <span id="preformBagSizeHint"></span> pieces. 2 bottle bags = 1 preform bag.</p>
+        <div class="preform-status">
+          <div><span>Preform bags currently at factory</span><strong id="preformAtFactory">0</strong></div>
+        </div>
+        <div class="form-row">
+          <label>Send preform bags to factory</label>
+          <input type="number" min="0" step="1" id="preformSendInput" placeholder="Bags sent">
+          <button class="btn btn-secondary" id="preformSendBtn">Send</button>
+        </div>
+        <div class="form-row">
+          <label>Retrieve bottles from factory</label>
+          <input type="number" min="0" step="1" id="preformBagsClosedInput" placeholder="Preform bags being closed out">
+          <input type="number" min="0" step="1" id="preformBottlesReceivedInput" placeholder="Bottles actually received">
+          <input type="number" min="1" step="1" id="preformPerBagInput" placeholder="Bottles per bag (default 600)">
+          <button class="btn btn-secondary" id="preformReceiveBtn">Confirm retrieval</button>
+        </div>
+        <div id="preformResult" class="preform-result" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============================ SETTINGS ============================ -->
+    <section class="tab-panel" id="panel-settings">
+      <h2>Settings</h2>
+
+      <div class="section-block">
+        <h3>Add a new material</h3>
+        <div class="form-grid">
+          <input type="text" id="newMatName" placeholder="Material name">
+          <select id="newMatCategory">
+            <option value="raw">Raw material</option>
+            <option value="other">Other material</option>
+          </select>
+          <input type="text" id="newMatUnit" placeholder="Unit (e.g. piece, bucket)">
+          <input type="number" min="0" id="newMatBagSize" placeholder="Bag size (optional)">
+          <input type="number" min="0" id="newMatThreshold" placeholder="Threshold">
+          <select id="newMatThresholdType">
+            <option value="units">Threshold in units</option>
+            <option value="bags">Threshold in bags</option>
+          </select>
+          <label class="checkbox-label"><input type="checkbox" id="newMatSeasonal"> Seasonal (no threshold alerts)</label>
+        </div>
+        <button class="btn btn-primary" id="addMaterialBtn">Add material</button>
+      </div>
+
+      <div class="section-block">
+        <h3>Change a threshold or bag size</h3>
+        <div class="form-row">
+          <select id="thresholdMaterialSelect"></select>
+          <input type="number" min="0" id="thresholdNewValue" placeholder="New threshold">
+          <button class="btn btn-secondary" id="setThresholdBtn">Update threshold</button>
+        </div>
+        <div class="form-row">
+          <select id="bagSizeMaterialSelect"></select>
+          <input type="number" min="1" id="bagSizeNewValue" placeholder="New bag size">
+          <button class="btn btn-secondary" id="setBagSizeBtn">Update bag size</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Correct stock on hand</h3>
+        <div class="form-row">
+          <select id="correctMaterialSelect"></select>
+          <input type="number" min="0" step="0.01" id="correctNewValue" placeholder="Correct amount">
+          <input type="text" id="correctNote" placeholder="Reason (optional)">
+          <button class="btn btn-secondary" id="correctStockBtn">Save correction</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Correct fresh juice opening stock</h3>
+        <div class="form-row">
+          <select id="correctFjSelect"></select>
+          <input type="number" min="0" id="correctFjValue" placeholder="Correct opening stock">
+          <button class="btn btn-secondary" id="correctFjBtn">Save</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Add a new juice flavour</h3>
+        <div class="form-row">
+          <input type="text" id="newFlavourName" placeholder="Flavour name">
+          <button class="btn btn-primary" id="addFlavourBtn">Add flavour</button>
+        </div>
+      </div>
+
+      <div class="section-block danger-block">
+        <h3>Clear all entries</h3>
+        <p class="hint">First use clears everything for testing, no password needed. Every use after that needs the fixed developer password.</p>
+        <button class="btn btn-danger" id="clearAllBtn">Clear all entries</button>
+      </div>
+    </section>
+
+    <!-- ============================ WHATSAPP REPORT ============================ -->
+    <section class="tab-panel" id="panel-whatsapp">
+      <h2>Send Report to WhatsApp</h2>
+      <p class="hint">Builds one clear image of today's activity — what each tab started with, what was used, and what's left.</p>
+      <button class="btn btn-primary" id="buildReportBtn">Build today's report</button>
+      <div id="reportCard" class="report-card"></div>
+      <button class="btn btn-secondary" id="downloadReportBtn" hidden>Download image</button>
+    </section>
+
+    <!-- ============================ RECORDS & HISTORY ============================ -->
+    <section class="tab-panel" id="panel-records">
+      <h2>Records &amp; History</h2>
+      <div class="form-row">
+        <label>Filter by date</label>
+        <input type="date" id="recordsDateFilter">
+        <select id="recordsTabFilter">
+          <option value="">All areas</option>
+          <option value="raw">Raw materials</option>
+          <option value="other">Other materials</option>
+          <option value="preform">Preform</option>
+          <option value="freshjuice">Fresh juice / supply</option>
+          <option value="settings">Settings</option>
+        </select>
+        <button class="btn btn-secondary" id="recordsClearFilterBtn">Clear filter</button>
+      </div>
+      <div class="table-scroll">
+        <table class="records-table">
+          <thead><tr><th>Date</th><th>Area</th><th>Item</th><th>Action</th><th>Detail</th><th>Amount</th></tr></thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================ NOTIFICATIONS ============================ -->
+    <section class="tab-panel" id="panel-notifications">
+      <h2>Notifications</h2>
+      <p class="hint">Seasonal crops never appear here — shortages of those are expected.</p>
+      <div class="card-grid" id="notifCardGrid"></div>
+      <p class="empty-state" id="notifEmptyState" hidden>Everything is above threshold right now.</p>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

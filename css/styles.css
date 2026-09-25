@@ -1,0 +1,197 @@
+:root {
+  --green-900: #1f4d33;
+  --green-700: #2e7d45;
+  --green-500: #3f9e5c;
+  --green-100: #e6f3ea;
+  --yellow-500: #f2b705;
+  --yellow-100: #fff6dc;
+  --ink: #1f2a22;
+  --ink-soft: #5b6b60;
+  --paper: #fbfaf5;
+  --card: #ffffff;
+  --line: #e2e6de;
+  --red: #c0392b;
+  --radius: 10px;
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.app { max-width: 1100px; margin: 0 auto; padding-bottom: 3rem; }
+
+/* ---------------- Header ---------------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; background: var(--green-900); color: #fff;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  background: var(--yellow-500); color: var(--green-900); font-weight: 800;
+  width: 38px; height: 38px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text strong { font-size: 1.05rem; }
+.brand-sub { font-size: 0.75rem; color: #cfe4d6; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.sync-status {
+  font-size: 0.72rem; color: #cfe4d6; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.35); white-space: nowrap;
+}
+.sync-status.ok { color: var(--green-900); background: var(--yellow-500); border-color: var(--yellow-500); }
+.sync-status.error { color: #fff; background: var(--red); border-color: var(--red); }
+.notif-bell {
+  position: relative; background: none; border: none; color: #fff;
+  font-size: 1.2rem; cursor: pointer; padding: 6px;
+}
+.notif-count {
+  position: absolute; top: -2px; right: -2px; background: var(--red); color: #fff;
+  font-size: 0.65rem; border-radius: 999px; padding: 1px 5px; font-weight: 700;
+}
+
+/* ---------------- Tabs ---------------- */
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; background: var(--green-700);
+  padding: 0 10px;
+}
+.tab-btn {
+  background: none; border: none; color: #eaf5ee; padding: 12px 14px;
+  font-size: 0.88rem; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent;
+  font-weight: 600;
+}
+.tab-btn.active { color: #fff; border-bottom-color: var(--yellow-500); }
+.tab-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--yellow-500); margin-left: 4px;
+}
+
+/* ---------------- Urgent card ---------------- */
+.urgent-card {
+  margin: 16px 18px 0; background: var(--yellow-100); border: 1px solid var(--yellow-500);
+  border-radius: var(--radius); padding: 12px 16px;
+}
+.urgent-head { font-weight: 700; margin-bottom: 6px; }
+.urgent-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.urgent-list span {
+  background: #fff; border: 1px solid var(--yellow-500); border-radius: 999px;
+  padding: 4px 10px; font-size: 0.82rem;
+}
+
+/* ---------------- Content ---------------- */
+.content { padding: 18px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+h2 { margin: 0 0 4px; color: var(--green-900); }
+h3 { color: var(--green-900); margin: 0 0 10px; font-size: 1rem; }
+.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 16px; }
+
+.section-block {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 18px;
+}
+.danger-block { border-color: #f0c9c3; }
+
+.form-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;
+}
+.form-row label { font-size: 0.85rem; color: var(--ink-soft); min-width: 100%; }
+.form-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px; margin-bottom: 12px;
+}
+input, select {
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 0.9rem; background: #fff; color: var(--ink);
+}
+input:focus, select:focus { outline: 2px solid var(--green-500); outline-offset: 1px; }
+.checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.checkbox-label input { width: auto; }
+
+.btn {
+  border: none; border-radius: 8px; padding: 10px 16px; font-weight: 700;
+  cursor: pointer; font-size: 0.88rem;
+}
+.btn-primary { background: var(--green-700); color: #fff; }
+.btn-primary:hover { background: var(--green-900); }
+.btn-secondary { background: var(--yellow-500); color: var(--green-900); }
+.btn-secondary:hover { background: #d9a600; }
+.btn-danger { background: var(--red); color: #fff; }
+.actions-row { margin-top: 14px; }
+
+/* ---------------- Cards for materials ---------------- */
+.card-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
+}
+.mat-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px;
+}
+.mat-card.low { border-color: var(--red); background: #fdf1ef; }
+.mat-card h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--green-900); }
+.mat-card .qty { font-size: 1.4rem; font-weight: 800; }
+.mat-card .sub { font-size: 0.78rem; color: var(--ink-soft); }
+.unit-options { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.unit-options button {
+  border: 1px solid var(--green-500); background: #fff; color: var(--green-700);
+  border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
+}
+.unit-options button.selected { background: var(--green-700); color: #fff; }
+.unit-options input { width: 140px; }
+
+/* ---------------- Tables ---------------- */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--card); }
+th, td { padding: 8px 10px; border: 1px solid var(--line); font-size: 0.85rem; text-align: left; }
+thead th { background: var(--green-100); color: var(--green-900); }
+.fj-table td.locked { background: var(--green-100); font-weight: 700; }
+.fj-table input { width: 90px; }
+.fj-table tr th:first-child, .fj-table tr td:first-child { min-width: 170px; font-weight: 600; }
+
+/* ---------------- Preform ---------------- */
+.preform-status { display: flex; gap: 18px; margin-bottom: 12px; }
+.preform-status div { background: var(--green-100); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; }
+.preform-status strong { display: block; font-size: 1.2rem; color: var(--green-900); }
+.preform-result { margin-top: 10px; padding: 10px; border-radius: 8px; background: var(--yellow-100); font-size: 0.85rem; }
+
+/* ---------------- WhatsApp report card ---------------- */
+.report-card {
+  margin-top: 14px; padding: 22px; background: #fff; border-radius: var(--radius);
+  border: 3px solid var(--green-700); max-width: 640px; display: none;
+}
+.report-card.show { display: block; }
+.report-card h3.report-title {
+  text-align: center; color: var(--green-900); margin: 0 0 4px; font-size: 1.2rem;
+}
+.report-date { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin-bottom: 16px; }
+.report-section-title {
+  margin: 18px 0 8px; font-weight: 800; color: var(--yellow-500); background: var(--green-900);
+  padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;
+}
+.report-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+.report-table th, .report-table td {
+  border: 1px solid var(--line); padding: 6px 8px; font-size: 0.78rem; text-align: left;
+}
+.report-table thead th { background: var(--green-100); color: var(--green-900); text-align: center; }
+.report-table td.num, .report-table th.num { text-align: center; }
+.report-table tr.locked-row td { background: var(--green-100); font-weight: 700; }
+.report-table td.first-col, .report-table th.first-col { font-weight: 600; min-width: 130px; }
+.report-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; }
+.report-empty { text-align: center; color: var(--ink-soft); font-size: 0.85rem; padding: 8px 0; }
+
+/* ---------------- Empty state ---------------- */
+.empty-state { color: var(--ink-soft); font-size: 0.9rem; }
+
+@media (max-width: 640px) {
+  .fj-table input { width: 64px; }
+  .form-row { flex-direction: column; align-items: stretch; }
+  .preform-status { flex-direction: column; }
+  .report-card { padding: 14px; }
+}
