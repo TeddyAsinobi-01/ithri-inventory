@@ -127,11 +127,14 @@ function refreshFreshJuiceLockedCells(id) {
 
 function initFreshJuice() {
   renderFreshJuiceTable();
-  $("#fjCloseDayBtn").addEventListener("click", () => {
-    if (!confirm("Close today's fresh juice figures and roll them into tomorrow's opening stock?")) return;
-    Store.allFreshJuiceIds().forEach(id => Store.closeDayFreshJuice(id));
-    renderFreshJuiceTable();
-    refreshNotificationBadges();
+  $("#fjSaveBtn").addEventListener("click", async () => {
+    const btn = $("#fjSaveBtn");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    await Store.persistState();
+    btn.textContent = "Saved ✓";
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
   });
 }
 
@@ -543,6 +546,19 @@ function initWhatsAppReport() {
       link.href = canvas.toDataURL("image/png");
       link.click();
     });
+  });
+
+  $("#fjCloseDayBtn").addEventListener("click", () => {
+    if (!confirm("Close today's fresh juice figures and roll them into tomorrow's opening stock?")) return;
+    Store.allFreshJuiceIds().forEach(id => Store.closeDayFreshJuice(id));
+    renderFreshJuiceTable();
+    refreshNotificationBadges();
+    // Today's report is now stale (figures just rolled to tomorrow) — clear it
+    // so the manager isn't tempted to re-send an outdated image.
+    $("#reportCard").classList.remove("show");
+    $("#reportCard").innerHTML = "";
+    $("#downloadReportBtn").hidden = true;
+    alert("Today's figures are saved and closed. Tomorrow's opening stock is set.");
   });
 }
 

@@ -125,6 +125,8 @@ input:focus, select:focus { outline: 2px solid var(--green-500); outline-offset:
 .btn-secondary:hover { background: #d9a600; }
 .btn-danger { background: var(--red); color: #fff; }
 .actions-row { margin-top: 14px; }
+.rollover-row { margin-top: 26px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.rollover-row .hint { margin-bottom: 10px; }
 
 /* ---------------- Cards for materials ---------------- */
 .card-grid {
