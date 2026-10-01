@@ -22,6 +22,7 @@ import {
 
 const STATE_DOC = doc(db, "appState", "main");
 const MAX_RECORDS = 500;
+const MAX_FJ_HISTORY = 400; // one entry per flavour per closed day
 
 function blankFreshJuiceRow() {
   return { opening: 0, forSupply: 0, cooler: 0, supplied: 0, expired: 0, fermented: 0, leaking: 0, produced: 0 };
@@ -55,7 +56,11 @@ export const Store = (() => {
 
     clearAllUsedOnce: false,
 
-    records: []
+    records: [],
+    // One snapshot per flavour per day it was closed, so Records & History
+    // and the Summary tab can show a real opening/.../closing breakdown for
+    // past days (not just whatever is currently live for today).
+    freshJuiceHistory: []
   };
 
   ITHRI_CONFIG.rawMaterials.forEach(m => { state.rawStock[m.id] = freshMaterialState(m); });
@@ -246,6 +251,10 @@ export const Store = (() => {
     const c = computedFreshJuice(id);
     log("freshjuice", labelFor2(id), "Day closed",
         `Closing (total in freezer): ${c.totalInFreezer}`, c.totalInFreezer, id);
+    // Snapshot the full day's figures (not just the closing total) so
+    // Records & History and Summary can show this exact day later.
+    state.freshJuiceHistory.unshift({ date: todayStr(), flavourId: id, ...c });
+    if (state.freshJuiceHistory.length > MAX_FJ_HISTORY) state.freshJuiceHistory.length = MAX_FJ_HISTORY;
     state.freshJuice[id] = { ...blankFreshJuiceRow(), opening: c.totalInFreezer };
     schedulePersist();
   }
@@ -327,18 +336,31 @@ export const Store = (() => {
     state.preform.bagsSentTotal = 0;
     state.preform.bottlesReceivedTotal = 0;
     state.records = [];
+    state.freshJuiceHistory = [];
     state.clearAllUsedOnce = true;
     schedulePersist();
   }
 
-  // ---- Daily report summaries ------------------------------------------
+  // ---- Daily / range report summaries ------------------------------------
+  //
+  // Materials keep only their CURRENT stock level, not a day-by-day history —
+  // but every add/use/correction is logged with a signed amount, so any past
+  // day's closing stock can be rebuilt as: current stock, minus every logged
+  // change that happened AFTER that day. That's what materialDailySummary
+  // and materialRangeSummary below do; it only breaks if a change was ever
+  // made to stock without going through addStock/useStock/correctStock.
 
-  function materialDailySummary(id) {
+  function materialDailySummary(id, dateStr) {
+    dateStr = dateStr || todayStr();
     const m = findMaterial(id);
     const s = stockOf(id);
     const key = Object.keys(s)[0];
-    const closing = s[key];
-    const todays = state.records.filter(r => r.date === todayStr() && r.matId === id);
+    const currentStock = s[key];
+    const forMat = state.records.filter(r => r.matId === id && (r.tab === "raw" || r.tab === "other"));
+    const afterDelta = forMat.filter(r => r.date > dateStr)
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const closing = currentStock - afterDelta;
+    const todays = forMat.filter(r => r.date === dateStr);
     const totalDelta = todays.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const used = todays.filter(r => r.action === "Used")
       .reduce((sum, r) => sum + Math.abs(Number(r.amount) || 0), 0);
@@ -346,12 +368,31 @@ export const Store = (() => {
     return { id, name: m.name, unit: m.unit, bagSize: m.bagSize, opening, used, closing };
   }
 
-  function rawMaterialsDailySummary() {
-    return state.materials.raw.map(m => materialDailySummary(m.id));
+  function materialRangeSummary(id, fromStr, toStr) {
+    const m = findMaterial(id);
+    const opening = materialDailySummary(id, fromStr).opening;
+    const closing = materialDailySummary(id, toStr).closing;
+    const forMat = state.records.filter(r => r.matId === id && (r.tab === "raw" || r.tab === "other") &&
+      r.date >= fromStr && r.date <= toStr);
+    const used = forMat.filter(r => r.action === "Used")
+      .reduce((sum, r) => sum + Math.abs(Number(r.amount) || 0), 0);
+    return { id, name: m.name, unit: m.unit, bagSize: m.bagSize, opening, used, closing };
   }
 
-  function otherMaterialsDailySummary() {
-    return state.materials.other.map(m => materialDailySummary(m.id));
+  function rawMaterialsDailySummary(dateStr) {
+    return state.materials.raw.map(m => materialDailySummary(m.id, dateStr));
+  }
+
+  function otherMaterialsDailySummary(dateStr) {
+    return state.materials.other.map(m => materialDailySummary(m.id, dateStr));
+  }
+
+  function rawMaterialsRangeSummary(fromStr, toStr) {
+    return state.materials.raw.map(m => materialRangeSummary(m.id, fromStr, toStr));
+  }
+
+  function otherMaterialsRangeSummary(fromStr, toStr) {
+    return state.materials.other.map(m => materialRangeSummary(m.id, fromStr, toStr));
   }
 
   function preformDailySummary() {
@@ -363,6 +404,44 @@ export const Store = (() => {
     return { sentToday, receivedToday, bagsAtFactory: state.preform.bagsAtFactory };
   }
 
+  // Fresh juice: for TODAY (not yet closed) we show the live, still-editable
+  // figures. For any other day, we can only show it if that day was actually
+  // closed — closeDayFreshJuice() snapshots the full row at that moment.
+  // Returns one row per flavour; a flavour with no snapshot for a past day
+  // comes back as null so the caller can show "not closed that day".
+  function freshJuiceDailyRow(id, dateStr) {
+    if (dateStr === todayStr()) return computedFreshJuice(id);
+    const snap = state.freshJuiceHistory.find(h => h.date === dateStr && h.flavourId === id);
+    return snap || null;
+  }
+
+  function freshJuiceDailySummary(dateStr) {
+    dateStr = dateStr || todayStr();
+    return allFreshJuiceMeta().map(f => ({ id: f.id, name: f.name, row: freshJuiceDailyRow(f.id, dateStr) }));
+  }
+
+  // Fresh juice over a range: totals what happened across every closed day
+  // in the range (produced/supplied/expired/fermented/leaking), plus the
+  // opening figure from the first closed day and the closing figure from
+  // the last closed day found. daysClosed tells the caller how many of the
+  // days in the range actually had a close-day snapshot to draw from.
+  function freshJuiceRangeSummary(fromStr, toStr) {
+    return allFreshJuiceMeta().map(f => {
+      const snaps = state.freshJuiceHistory
+        .filter(h => h.flavourId === f.id && h.date >= fromStr && h.date <= toStr)
+        .sort((a, b) => a.date < b.date ? -1 : 1);
+      if (!snaps.length) return { id: f.id, name: f.name, daysClosed: 0 };
+      const sum = key => snaps.reduce((s, h) => s + (Number(h[key]) || 0), 0);
+      return {
+        id: f.id, name: f.name, daysClosed: snaps.length,
+        opening: snaps[0].opening,
+        produced: sum("produced"), supplied: sum("supplied"),
+        expired: sum("expired"), fermented: sum("fermented"), leaking: sum("leaking"),
+        closing: snaps[snaps.length - 1].totalInFreezer
+      };
+    });
+  }
+
   return {
     state, todayStr, log, findMaterial, stockOf, addStock, useStock, correctStock,
     labelFor, isBelowThreshold, lowStockList, bagsFor,
@@ -371,6 +450,8 @@ export const Store = (() => {
     allFreshJuiceIds, allFreshJuiceMeta, labelFor2,
     addMaterial, setThreshold, setBagSize, setOpeningStock, clearAll,
     loadState, persistState, setSaveHandlers,
-    materialDailySummary, rawMaterialsDailySummary, otherMaterialsDailySummary, preformDailySummary
+    materialDailySummary, rawMaterialsDailySummary, otherMaterialsDailySummary, preformDailySummary,
+    materialRangeSummary, rawMaterialsRangeSummary, otherMaterialsRangeSummary,
+    freshJuiceDailySummary, freshJuiceRangeSummary
   };
 })();

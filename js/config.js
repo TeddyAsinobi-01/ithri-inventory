@@ -20,7 +20,8 @@ export const ITHRI_CONFIG = {
     {
       id: "tigernut", name: "Tigernut", unit: "custard bucket",
       trackedIn: "buckets", bagSize: 24, bagSizeEditable: true,
-      thresholdType: "bags", threshold: 5, seasonal: false, hasHalfBag: false
+      thresholdType: "bags", threshold: 5, seasonal: false, hasHalfBag: false,
+      bagPrimary: true
     },
     {
       id: "ginger", name: "Ginger", unit: "custard bucket",
@@ -30,7 +31,8 @@ export const ITHRI_CONFIG = {
     {
       id: "dates", name: "Dates", unit: "custard bucket",
       trackedIn: "buckets", bagSize: 23, bagSizeEditable: true,
-      thresholdType: "bags", threshold: 1, seasonal: false, hasHalfBag: false
+      thresholdType: "bags", threshold: 1, seasonal: false, hasHalfBag: false,
+      bagPrimary: true
     },
     {
       id: "coconut", name: "Coconut", unit: "piece",

@@ -221,24 +221,43 @@
     <!-- ============================ RECORDS & HISTORY ============================ -->
     <section class="tab-panel" id="panel-records">
       <h2>Records &amp; History</h2>
-      <div class="form-row">
-        <label>Filter by date</label>
-        <input type="date" id="recordsDateFilter">
-        <select id="recordsTabFilter">
-          <option value="">All areas</option>
-          <option value="raw">Raw materials</option>
-          <option value="other">Other materials</option>
-          <option value="preform">Preform</option>
-          <option value="freshjuice">Fresh juice / supply</option>
-          <option value="settings">Settings</option>
-        </select>
-        <button class="btn btn-secondary" id="recordsClearFilterBtn">Clear filter</button>
+
+      <div class="subtabs" id="recordsSubtabNav">
+        <button class="subtab-btn active" data-subtab="daily">Daily Records</button>
+        <button class="subtab-btn" data-subtab="summary">Summary</button>
       </div>
-      <div class="table-scroll">
-        <table class="records-table">
-          <thead><tr><th>Date</th><th>Area</th><th>Item</th><th>Action</th><th>Detail</th><th>Amount</th></tr></thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
+
+      <!-- ===== Daily Records sub-tab ===== -->
+      <div class="subtab-panel active" id="subpanel-daily">
+        <div class="form-row">
+          <label>From</label>
+          <input type="date" id="recordsFromDate">
+          <label>To</label>
+          <input type="date" id="recordsToDate">
+          <select id="recordsCategoryFilter">
+            <option value="">All categories</option>
+            <option value="freshjuice">Fresh Juice</option>
+            <option value="raw">Raw Materials</option>
+            <option value="other">Other Materials</option>
+          </select>
+          <button class="btn btn-secondary" id="recordsResetBtn">Reset to today</button>
+        </div>
+        <p class="hint">Shows up to 62 days at a time, most recent first — for a longer stretch use the Summary tab instead.</p>
+        <div id="recordsDaily"></div>
+      </div>
+
+      <!-- ===== Summary sub-tab ===== -->
+      <div class="subtab-panel" id="subpanel-summary">
+        <div class="form-row">
+          <label>Period</label>
+          <select id="summaryPeriodType">
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
+          <input type="week" id="summaryWeekInput">
+          <input type="month" id="summaryMonthInput" hidden>
+        </div>
+        <div id="summaryBody"></div>
       </div>
     </section>
 

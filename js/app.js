@@ -19,6 +19,49 @@ function fmt(n) {
   return (Math.round(n * 100) / 100).toString();
 }
 
+/* ---------------------------- Date helpers -------------------------------- */
+
+// Inclusive list of "YYYY-MM-DD" strings from fromStr to toStr. Done in pure
+// UTC day-steps so it can't shift a day under a non-UTC local timezone.
+function dateRange(fromStr, toStr) {
+  const out = [];
+  let d = new Date(fromStr + "T00:00:00Z");
+  const end = new Date(toStr + "T00:00:00Z");
+  while (d <= end) {
+    out.push(d.toISOString().slice(0, 10));
+    d = new Date(d.getTime() + 86400000);
+  }
+  return out;
+}
+
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+// "YYYY-Www" (native <input type="week"> value) -> [mondayStr, sundayStr]
+function isoWeekToRange(weekValue) {
+  const [yearStr, weekStr] = weekValue.split("-W");
+  const year = Number(yearStr), week = Number(weekStr);
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7; // Monday=1 .. Sunday=7
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  return [monday.toISOString().slice(0, 10), sunday.toISOString().slice(0, 10)];
+}
+
+// "YYYY-MM" (native <input type="month"> value) -> [firstDayStr, lastDayStr]
+function monthToRange(monthValue) {
+  const [yearStr, monthStr] = monthValue.split("-");
+  const year = Number(yearStr), month = Number(monthStr);
+  const from = `${yearStr}-${monthStr}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const to = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
+  return [from, to];
+}
+
 /* ---------------------------- Tabs --------------------------------------- */
 
 function initTabs() {
@@ -33,7 +76,7 @@ function switchTab(tab) {
   $$(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
   $("#urgentCard").hidden = tab !== "freshjuice" || Store.lowStockList().length === 0;
   if (tab === "notifications") renderNotifications();
-  if (tab === "records") renderRecords();
+  if (tab === "records") renderRecordsDaily();
 }
 
 /* ---------------------------- Notifications ------------------------------ */
@@ -181,11 +224,19 @@ function renderRawCards() {
     const key = Object.keys(s)[0];
     const amt = s[key];
     const low = Store.isBelowThreshold(m);
-    const bagInfo = m.bagSize ? `${fmt(Store.bagsFor(m, amt))} bag(s) · ${m.bagSize} ${m.unit}s/bag` : (m.seasonal ? "Seasonal" : "");
+    const bucketLine = `${fmt(amt)} ${m.unit}${amt === 1 ? "" : "s"}`;
+    const bagCount = m.bagSize ? fmt(Store.bagsFor(m, amt)) : null;
+    const bagLine = m.bagSize ? `${bagCount} bag(s) · ${m.bagSize} ${m.unit}s/bag` : (m.seasonal ? "Seasonal" : "");
+    // Tigernut/Dates are bought and tracked by the bag day-to-day, so the
+    // bag count is the headline figure there; the custard-bucket count is
+    // the finer-grained backup measure, shown smaller.
+    const bagIsPrimary = m.bagPrimary && m.bagSize;
+    const qtyLine = bagIsPrimary ? `${bagCount} bag${bagCount === "1" ? "" : "s"}` : bucketLine;
+    const subLine = bagIsPrimary ? bucketLine : bagLine;
     return `<div class="mat-card ${low ? "low" : ""}">
       <h4>${m.name}</h4>
-      <div class="qty">${fmt(amt)} ${m.unit}${amt === 1 ? "" : "s"}</div>
-      <div class="sub">${bagInfo}</div>
+      <div class="qty">${qtyLine}</div>
+      <div class="sub">${subLine}</div>
     </div>`;
   }).join("");
 }
@@ -474,7 +525,7 @@ function initSettings() {
     }
     populateSelectors();
     renderFreshJuiceTable(); renderRawCards(); renderOtherCards();
-    refreshNotificationBadges(); renderRecords();
+    refreshNotificationBadges(); renderRecordsDaily(); renderSummary();
     $("#preformAtFactory").textContent = "0";
     alert("All entries cleared.");
   });
@@ -482,14 +533,19 @@ function initSettings() {
 
 /* ---------------------------- WhatsApp Report -------------------------------------- */
 
-function fjReportTable() {
-  const flavours = Store.allFreshJuiceMeta();
-  if (!flavours.length) return "";
-  const head = "<th class=\"first-col\">Description</th>" + flavours.map(f => `<th class="num">${f.name}</th>`).join("");
+// dateStr omitted = today (the live, still-editable figures). Any other
+// date pulls from the day-close snapshot for that day, if one exists.
+function fjReportTable(dateStr) {
+  const summary = Store.freshJuiceDailySummary(dateStr);
+  if (!summary.length) return "";
+  if (!summary.some(s => s.row)) {
+    return `<p class="report-empty">Fresh juice wasn't closed out on this day — no figures recorded.</p>`;
+  }
+  const head = "<th class=\"first-col\">Description</th>" + summary.map(s => `<th class="num">${s.name}</th>`).join("");
   const rows = FJ_ROWS.map(row => {
-    const cells = flavours.map(f => {
-      const c = Store.computedFreshJuice(f.id);
-      return `<td class="num">${fmt(c[row.key])}</td>`;
+    const cells = summary.map(s => {
+      const val = s.row ? s.row[row.key] : null;
+      return `<td class="num">${val === null || val === undefined ? "—" : fmt(val)}</td>`;
     }).join("");
     return `<tr class="${row.editable ? "" : "locked-row"}"><td class="first-col">${row.label}</td>${cells}</tr>`;
   }).join("");
@@ -564,27 +620,146 @@ function initWhatsAppReport() {
 
 /* ---------------------------- Records & History -------------------------------------- */
 
-function renderRecords() {
-  const dateFilter = $("#recordsDateFilter").value;
-  const tabFilter = $("#recordsTabFilter").value;
-  let rows = Store.state.records;
-  if (dateFilter) rows = rows.filter(r => r.date === dateFilter);
-  if (tabFilter) rows = rows.filter(r => r.tab === tabFilter);
+const RECORDS_MAX_DAYS = 62; // longer stretches belong in the Summary sub-tab
 
-  $("#recordsBody").innerHTML = rows.map(r => `<tr>
-    <td>${r.date}</td><td>${r.tab}</td><td>${r.item}</td><td>${r.action}</td>
-    <td>${r.detail || ""}</td><td>${r.amount === "" || r.amount === undefined ? "" : fmt(r.amount)}</td>
-  </tr>`).join("") || `<tr><td colspan="6" class="empty-state">No records for this filter.</td></tr>`;
+function recordsCategoryTables(dateStr, categoryFilter) {
+  let html = "";
+  if (!categoryFilter || categoryFilter === "freshjuice") {
+    html += `<div class="records-category-title">Fresh Juice</div>${fjReportTable(dateStr)}`;
+  }
+  if (!categoryFilter || categoryFilter === "raw") {
+    html += `<div class="records-category-title">Raw Materials</div>${materialsReportTable(Store.rawMaterialsDailySummary(dateStr))}`;
+  }
+  if (!categoryFilter || categoryFilter === "other") {
+    html += `<div class="records-category-title">Other Materials</div>${materialsReportTable(Store.otherMaterialsDailySummary(dateStr))}`;
+  }
+  return html;
+}
+
+function renderRecordsDaily() {
+  const container = $("#recordsDaily");
+  const categoryFilter = $("#recordsCategoryFilter").value;
+  let fromStr = $("#recordsFromDate").value || Store.todayStr();
+  let toStr = $("#recordsToDate").value || fromStr;
+  if (fromStr > toStr) { const t = fromStr; fromStr = toStr; toStr = t; }
+
+  const days = dateRange(fromStr, toStr);
+  if (days.length > RECORDS_MAX_DAYS) {
+    container.innerHTML = `<p class="empty-state">That's ${days.length} days — please narrow it to ${RECORDS_MAX_DAYS} days or fewer. For a longer stretch, use the Summary tab instead.</p>`;
+    return;
+  }
+
+  container.innerHTML = days.slice().reverse().map(d => `
+    <div class="day-block">
+      <div class="day-header">${formatDateLabel(d)}</div>
+      ${recordsCategoryTables(d, categoryFilter)}
+      <div class="day-end">— end of ${formatDateLabel(d)} —</div>
+    </div>
+  `).join("");
+}
+
+function summaryFjTable(fromStr, toStr) {
+  const rows = Store.freshJuiceRangeSummary(fromStr, toStr);
+  if (!rows.length) return "";
+  const head = `<th class="first-col">Flavour</th><th class="num">Opening</th><th class="num">Produced</th>
+    <th class="num">Supplied</th><th class="num">Expired</th><th class="num">Fermented</th>
+    <th class="num">Leaking</th><th class="num">Closing</th>`;
+  const body = rows.map(r => {
+    if (!r.daysClosed) {
+      return `<tr><td class="first-col">${r.name}</td><td class="num" colspan="7">No closed days in this period</td></tr>`;
+    }
+    return `<tr>
+      <td class="first-col">${r.name}</td>
+      <td class="num">${fmt(r.opening)}</td><td class="num">${fmt(r.produced)}</td>
+      <td class="num">${fmt(r.supplied)}</td><td class="num">${fmt(r.expired)}</td>
+      <td class="num">${fmt(r.fermented)}</td><td class="num">${fmt(r.leaking)}</td>
+      <td class="num">${fmt(r.closing)}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table class="report-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderSummary() {
+  const periodType = $("#summaryPeriodType").value;
+  const body = $("#summaryBody");
+  let fromStr, toStr, label;
+
+  if (periodType === "week") {
+    const val = $("#summaryWeekInput").value;
+    if (!val) { body.innerHTML = `<p class="empty-state">Pick a week to see its summary.</p>`; return; }
+    [fromStr, toStr] = isoWeekToRange(val);
+    label = `Week of ${formatDateLabel(fromStr)} – ${formatDateLabel(toStr)}`;
+  } else {
+    const val = $("#summaryMonthInput").value;
+    if (!val) { body.innerHTML = `<p class="empty-state">Pick a month to see its summary.</p>`; return; }
+    [fromStr, toStr] = monthToRange(val);
+    label = new Date(fromStr + "T00:00:00Z").toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+  }
+
+  body.innerHTML = `
+    <p class="summary-meta">${label} (${fromStr} to ${toStr})</p>
+    <div class="records-category-title">Fresh Juice</div>
+    ${summaryFjTable(fromStr, toStr)}
+    <div class="records-category-title">Raw Materials</div>
+    ${materialsReportTable(Store.rawMaterialsRangeSummary(fromStr, toStr))}
+    <div class="records-category-title">Other Materials</div>
+    ${materialsReportTable(Store.otherMaterialsRangeSummary(fromStr, toStr))}
+  `;
+}
+
+// ISO 8601 week number for "today", used only to pre-fill the week picker.
+function currentIsoWeekValue() {
+  const d = new Date();
+  const utcDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  return `${utcDate.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+function initRecordsSubtabs() {
+  $$("#recordsSubtabNav .subtab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      $$("#recordsSubtabNav .subtab-btn").forEach(b => b.classList.toggle("active", b === btn));
+      $$(".subtab-panel").forEach(p => p.classList.toggle("active", p.id === "subpanel-" + btn.dataset.subtab));
+      if (btn.dataset.subtab === "daily") renderRecordsDaily();
+      if (btn.dataset.subtab === "summary") renderSummary();
+    });
+  });
+}
+
+function initSummary() {
+  $("#summaryWeekInput").value = currentIsoWeekValue();
+  $("#summaryMonthInput").value = Store.todayStr().slice(0, 7);
+
+  $("#summaryPeriodType").addEventListener("change", () => {
+    const isWeek = $("#summaryPeriodType").value === "week";
+    $("#summaryWeekInput").hidden = !isWeek;
+    $("#summaryMonthInput").hidden = isWeek;
+    renderSummary();
+  });
+  $("#summaryWeekInput").addEventListener("change", renderSummary);
+  $("#summaryMonthInput").addEventListener("change", renderSummary);
 }
 
 function initRecords() {
-  $("#recordsDateFilter").addEventListener("change", renderRecords);
-  $("#recordsTabFilter").addEventListener("change", renderRecords);
-  $("#recordsClearFilterBtn").addEventListener("click", () => {
-    $("#recordsDateFilter").value = "";
-    $("#recordsTabFilter").value = "";
-    renderRecords();
+  const today = Store.todayStr();
+  $("#recordsFromDate").value = today;
+  $("#recordsToDate").value = today;
+
+  $("#recordsFromDate").addEventListener("change", renderRecordsDaily);
+  $("#recordsToDate").addEventListener("change", renderRecordsDaily);
+  $("#recordsCategoryFilter").addEventListener("change", renderRecordsDaily);
+  $("#recordsResetBtn").addEventListener("click", () => {
+    $("#recordsFromDate").value = Store.todayStr();
+    $("#recordsToDate").value = Store.todayStr();
+    $("#recordsCategoryFilter").value = "";
+    renderRecordsDaily();
   });
+
+  initRecordsSubtabs();
+  initSummary();
 }
 
 /* ---------------------------- Sync status -------------------------------------- */
