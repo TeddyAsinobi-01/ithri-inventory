@@ -16,6 +16,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -140,6 +141,7 @@ input:focus, select:focus { outline: 2px solid var(--green-500); outline-offset:
 .mat-card h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--green-900); }
 .mat-card .qty { font-size: 1.4rem; font-weight: 800; }
 .mat-card .sub { font-size: 0.78rem; color: var(--ink-soft); }
+.mat-card .sub-small { font-size: 0.74rem; font-weight: 400; }
 .unit-options { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .unit-options button {
   border: 1px solid var(--green-500); background: #fff; color: var(--green-700);
@@ -225,4 +227,137 @@ thead th { background: var(--green-100); color: var(--green-900); }
   .form-row { flex-direction: column; align-items: stretch; }
   .preform-status { flex-direction: column; }
   .report-card { padding: 14px; }
+}
+
+
+/* ======================================================================
+   Roles, home screen, and the new screens
+   ====================================================================== */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------------- Home screen ---------------- */
+.home-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px; background:
+    radial-gradient(circle at 15% 10%, rgba(242,183,5,0.20), transparent 40%),
+    linear-gradient(160deg, var(--green-900), var(--green-700));
+}
+.home-inner { width: 100%; max-width: 760px; text-align: center; color: #fff; }
+.home-brand h1 { margin: 10px 0 2px; font-size: 1.9rem; letter-spacing: 0.01em; }
+.home-brand p { margin: 0 0 22px; color: #d7ecde; }
+.brand-mark-lg { width: 64px; height: 64px; font-size: 1.5rem; border-radius: 16px; margin: 0 auto; }
+.home-status { min-height: 1.3em; margin-bottom: 10px; color: var(--yellow-100); font-size: 0.92rem; }
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: left; }
+.role-card {
+  background: #fff; color: var(--ink); border-radius: 16px; padding: 22px 20px;
+  display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  border-top: 6px solid var(--yellow-500);
+}
+.role-card h2 { margin: 0; font-size: 1.2rem; }
+.role-icon { font-size: 1.8rem; }
+.role-desc { margin: 0 0 4px; color: var(--ink-soft); font-size: 0.86rem; flex: 1; }
+.role-card input { width: 100%; padding: 11px 12px; }
+.login-error { min-height: 1.1em; color: var(--red); font-size: 0.82rem; font-weight: 600; }
+.btn-block { width: 100%; }
+.home-forgot { margin-top: 18px; color: #d7ecde; }
+.link-btn {
+  background: none; border: none; padding: 0; cursor: pointer; font: inherit;
+  color: var(--green-700); text-decoration: underline; font-weight: 700;
+}
+.home-screen .link-btn { color: #d7ecde; font-weight: 500; }
+.btn-logout {
+  background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 8px; padding: 6px 11px; font-size: 0.78rem; cursor: pointer; font-weight: 600;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.15); }
+.brand-sub { font-weight: 600; color: var(--yellow-500); }
+
+/* ---------------- Toast ---------------- */
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 30px); opacity: 0;
+  pointer-events: none; z-index: 50; max-width: min(92vw, 460px); padding: 11px 16px;
+  border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #fff;
+  background: var(--green-900); box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.ok { background: var(--green-700); }
+.toast.warn { background: #b26a00; }
+
+/* ---------------- Bag-first stock cards ---------------- */
+.qty-bags { display: flex; align-items: baseline; gap: 8px; }
+.qty-bags .qty-num {
+  font-size: 2.3rem; line-height: 1; font-weight: 900; color: var(--green-900);
+  background: var(--yellow-100); border: 2px solid var(--yellow-500); border-radius: 10px;
+  padding: 4px 12px;
+}
+.qty-bags .qty-unit { font-size: 1rem; font-weight: 800; color: var(--green-700); }
+.mat-card.low .qty-bags .qty-num { background: #fbe1dc; border-color: var(--red); color: var(--red); }
+
+/* ---------------- Fresh juice: spoilt / leaking / fermented cells ---------------- */
+.fj-table th[scope="row"] { text-align: left; background: var(--green-100); color: var(--green-900); min-width: 170px; }
+.fj-table td.locked { text-align: center; }
+.defect-cell { min-width: 176px; vertical-align: top; text-align: center; }
+.defect-total { font-weight: 800; font-size: 1.05rem; }
+.defect-split { font-size: 0.72rem; color: var(--ink-soft); min-height: 1.1em; margin-bottom: 6px; }
+.defect-inputs { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+.defect-inputs .d-qty { grid-column: 1 / -1; width: 100%; padding: 6px 8px; }
+.defect-inputs .d-src { width: 100%; padding: 6px 4px; font-size: 0.78rem; min-width: 0; }
+.btn-mini {
+  border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; background: var(--green-700); color: #fff;
+}
+.btn-mini:hover { background: var(--green-900); }
+.btn-mini-danger { background: #f3d6d1; color: var(--red); padding: 3px 8px; }
+.btn-mini-danger:hover { background: var(--red); color: #fff; }
+.cell-note { font-size: 0.7rem; font-weight: 400; color: var(--ink-soft); margin-top: 2px; }
+.spaced { margin-top: 22px; }
+
+/* ---------------- Status chips ---------------- */
+.chip {
+  display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+  white-space: nowrap; border: 1px solid transparent;
+}
+.chip-pending { background: var(--yellow-100); border-color: var(--yellow-500); color: #7a5600; }
+.chip-approved { background: var(--green-100); border-color: var(--green-500); color: var(--green-900); }
+.chip-rejected { background: #f6e0dd; border-color: var(--red); color: var(--red); }
+.chip-noaction { background: #eef0ec; border-color: var(--line); color: var(--ink-soft); }
+.defect-table td { vertical-align: middle; }
+
+/* ---------------- Approvals ---------------- */
+.approval-card {
+  display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  background: var(--yellow-100); border: 1px solid var(--yellow-500); border-left-width: 6px;
+  border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px;
+}
+.approval-main { flex: 1; min-width: 220px; }
+.approval-title { font-weight: 800; color: var(--green-900); }
+.approval-qty { font-size: 1.05rem; font-weight: 700; margin: 2px 0; }
+.approval-meta { font-size: 0.78rem; color: var(--ink-soft); }
+.approval-actions { display: flex; gap: 8px; }
+.pending-banner {
+  background: var(--yellow-100); border: 1px solid var(--yellow-500); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 16px; font-size: 0.9rem;
+}
+
+/* ---------------- Overview / report extras ---------------- */
+.current-line { margin: 0 0 12px; font-size: 0.85rem; color: var(--green-900); font-weight: 600; }
+.plain-lines { max-width: 460px; }
+.day-status { margin-bottom: 6px; }
+.auto-note { margin-top: 14px; max-width: 640px; }
+.fj-table td.defect-cell.locked { background: var(--green-100); }
+
+/* The "Close today" button blinks after the report is generated */
+@keyframes ithri-blink {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242,183,5,0.95); transform: scale(1); }
+  50% { box-shadow: 0 0 0 12px rgba(242,183,5,0); transform: scale(1.05); }
+}
+.btn.blink { animation: ithri-blink 0.9s ease-in-out infinite; background: var(--yellow-500); color: var(--green-900); }
+
+@media (max-width: 640px) {
+  .role-grid { grid-template-columns: 1fr; }
+  .home-brand h1 { font-size: 1.5rem; }
+  .approval-actions { width: 100%; }
+  .approval-actions .btn { flex: 1; }
+  .qty-bags .qty-num { font-size: 2rem; }
 }

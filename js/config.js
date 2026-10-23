@@ -74,6 +74,28 @@ export const ITHRI_CONFIG = {
     defaultBottlesPerBottleBag: 600
   },
 
+  // Spoilt / leaking / fermented juice. "stores" = returned from the super
+  // stores / sales outlets (already out of our stock, so no approval needed).
+  // "factory" = lost at the factory (comes out of our stock, but only after
+  // the manager approves it).
+  DEFECT_CATEGORIES: [
+    { key: "expired", label: "Expired / spoilt" },
+    { key: "fermented", label: "Fermented" },
+    { key: "leaking", label: "Leaking" }
+  ],
+  DEFECT_SOURCES: [
+    { key: "stores", label: "From super stores" },
+    { key: "factory", label: "From factory" }
+  ],
+
+  // Starting passwords for the two logins. The manager can change both from
+  // Settings; once changed, only a hash of the new password is stored.
+  DEFAULT_PASSWORDS: { staff: "staff", manager: "admin" },
+
+  // The open day is closed automatically at this local time if nobody
+  // closes it by hand.
+  AUTO_CLOSE: { hour: 23, minute: 59 },
+
   // Fixed developer-only password for the second-and-later "clear all
   // entries" action. Deliberately not exposed anywhere in Settings UI.
   CLEAR_ALL_PASSWORD: "ALICE OGECHI OKORO"

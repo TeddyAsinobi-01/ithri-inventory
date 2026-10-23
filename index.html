@@ -8,36 +8,77 @@
 </head>
 <body>
 
-<div class="app">
+<!-- ============================ HOME SCREEN / LOGIN ============================ -->
+<div class="home-screen" id="homeScreen">
+  <div class="home-inner">
+    <div class="home-brand">
+      <span class="brand-mark brand-mark-lg">IT</span>
+      <h1>Ithri Inventory</h1>
+      <p>Who is using the site?</p>
+    </div>
 
-  <!-- ============================ HEADER / NAV ============================ -->
+    <div class="home-status" id="homeStatus" role="status"></div>
+    <button class="btn btn-secondary" id="homeRetryBtn" hidden>Try again</button>
+
+    <div class="role-grid">
+      <form class="role-card role-form" data-role="staff" autocomplete="off">
+        <div class="role-icon" aria-hidden="true">📋</div>
+        <h2>Inventory Staff</h2>
+        <p class="role-desc">Record what was used, what leaves the fridge, what was produced, and spoilt, leaking or fermented juice.</p>
+        <label class="sr-only" for="pwStaff">Staff password</label>
+        <input class="pw" id="pwStaff" type="password" placeholder="Staff password" autocomplete="current-password">
+        <div class="login-error" role="alert"></div>
+        <button class="btn btn-primary btn-block" type="submit">Log in as staff</button>
+      </form>
+
+      <form class="role-card role-form" data-role="manager" autocomplete="off">
+        <div class="role-icon" aria-hidden="true">🗝️</div>
+        <h2>Inventory Manager</h2>
+        <p class="role-desc">Record purchases, approve factory losses, see the full overview, send the daily report and close the day.</p>
+        <label class="sr-only" for="pwManager">Manager password</label>
+        <input class="pw" id="pwManager" type="password" placeholder="Manager password" autocomplete="current-password">
+        <div class="login-error" role="alert"></div>
+        <button class="btn btn-primary btn-block" type="submit">Log in as manager</button>
+      </form>
+    </div>
+
+    <button class="link-btn home-forgot" id="forgotPwBtn" type="button">Forgot a password?</button>
+  </div>
+</div>
+
+<!-- ================================== APP ================================== -->
+<div class="app" id="appShell" hidden>
+
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">IT</span>
       <div class="brand-text">
         <strong>Ithri Inventory</strong>
-        <span class="brand-sub">Stock tracker</span>
+        <span class="brand-sub" id="roleBadge"></span>
       </div>
     </div>
     <div class="topbar-right">
       <span class="sync-status" id="syncStatus">Connecting…</span>
-      <button class="notif-bell" id="notifBellBtn" aria-label="Notifications">
+      <button class="notif-bell" id="notifBellBtn" aria-label="Notifications" data-roles="manager">
         🔔<span class="notif-count" id="notifCount" hidden>0</span>
       </button>
+      <button class="btn-logout" id="logoutBtn" type="button">Log out</button>
     </div>
   </header>
 
   <nav class="tabs" id="tabNav">
-    <button class="tab-btn active" data-tab="freshjuice">Fresh Juice</button>
-    <button class="tab-btn" data-tab="raw">Raw Materials</button>
-    <button class="tab-btn" data-tab="other">Other Materials</button>
-    <button class="tab-btn" data-tab="settings">Settings</button>
-    <button class="tab-btn" data-tab="whatsapp">WhatsApp Report</button>
-    <button class="tab-btn" data-tab="records">Records &amp; History</button>
-    <button class="tab-btn" data-tab="notifications">Notifications <span class="tab-dot" id="tabDot" hidden></span></button>
+    <button class="tab-btn" data-tab="overview" data-roles="manager">Overview</button>
+    <button class="tab-btn" data-tab="freshjuice" data-roles="staff">Fresh Juice</button>
+    <button class="tab-btn" data-tab="raw" data-roles="staff manager">Raw Materials</button>
+    <button class="tab-btn" data-tab="other" data-roles="staff manager">Other Materials</button>
+    <button class="tab-btn" data-tab="losses" data-roles="manager">Loss Review</button>
+    <button class="tab-btn" data-tab="settings" data-roles="manager">Settings</button>
+    <button class="tab-btn" data-tab="whatsapp" data-roles="manager">WhatsApp Report</button>
+    <button class="tab-btn" data-tab="records" data-roles="staff manager">Records &amp; History</button>
+    <button class="tab-btn" data-tab="notifications" data-roles="manager">Notifications <span class="tab-dot" id="tabDot" hidden></span></button>
   </nav>
 
-  <!-- Low-stock reminder card, shown on top of Fresh Juice tab on load -->
+  <!-- Low-stock reminder card, shown on top of the manager's Overview -->
   <div class="urgent-card" id="urgentCard" hidden>
     <div class="urgent-head">⚠️ Items need restocking</div>
     <div class="urgent-list" id="urgentList"></div>
@@ -45,72 +86,99 @@
 
   <main class="content">
 
-    <!-- ============================ FRESH JUICE ============================ -->
-    <section class="tab-panel active" id="panel-freshjuice">
+    <!-- ============================ MANAGER: OVERVIEW ============================ -->
+    <section class="tab-panel" id="panel-overview" data-roles="manager">
+      <h2>Overview</h2>
+      <p class="hint" id="overviewDate"></p>
+      <div class="pending-banner" id="overviewPending" hidden></div>
+
+      <h3>Fresh juice — live figures</h3>
+      <div class="table-scroll"><table class="fj-table" id="fjOverviewTable"></table></div>
+
+      <h3 class="spaced">Raw materials</h3>
+      <div class="table-scroll" id="overviewRaw"></div>
+
+      <h3 class="spaced">Other materials</h3>
+      <div class="table-scroll" id="overviewOther"></div>
+
+      <h3 class="spaced">Preform / bottle factory</h3>
+      <div class="plain-lines" id="overviewPreform"></div>
+
+      <h3 class="spaced">What has been entered today</h3>
+      <div class="table-scroll" id="overviewFeed"></div>
+    </section>
+
+    <!-- ============================ STAFF: FRESH JUICE ============================ -->
+    <section class="tab-panel" id="panel-freshjuice" data-roles="staff">
       <h2>Fresh Juice</h2>
-      <p class="hint">Opening stock carries over from yesterday's closing figure. Locked columns are calculated automatically.</p>
-      <div class="table-scroll">
-        <table class="fj-table" id="fjTable">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <!-- flavour columns injected here -->
-            </tr>
-          </thead>
-          <tbody id="fjTableBody"></tbody>
-        </table>
-      </div>
+      <p class="hint">Opening stock is set by yesterday's closing figure and is locked. Type what left the fridge, what was supplied and what was produced. Locked (green) rows work themselves out.</p>
+      <div class="table-scroll"><table class="fj-table" id="fjTable"></table></div>
+      <p class="hint spaced">Spoilt, leaking or fermented juice: type how many, choose where it came from, then press <strong>Add</strong>. Losses from the factory go to the manager for approval.</p>
+
+      <h3>Entered today</h3>
+      <div class="table-scroll" id="defectList"></div>
+
       <div class="actions-row">
-        <button class="btn btn-primary" id="fjSaveBtn">Save</button>
+        <button class="btn btn-primary" id="fjSaveBtn" type="button">Save</button>
       </div>
     </section>
 
     <!-- ============================ RAW MATERIALS ============================ -->
-    <section class="tab-panel" id="panel-raw">
+    <section class="tab-panel" id="panel-raw" data-roles="staff manager">
       <h2>Raw Materials</h2>
 
       <div class="section-block">
-        <h3>Add / use stock</h3>
+        <h3 id="rawFormTitle">Record what was used today</h3>
         <div class="form-row">
-          <select id="rawMaterialSelect"></select>
+          <select id="rawMaterialSelect" aria-label="Material"></select>
+          <select id="rawActionSelect" aria-label="What to record" data-roles="manager"></select>
+        </div>
+        <div class="form-row">
           <div id="rawUnitOptions" class="unit-options"></div>
           <input type="number" min="0" step="0.01" id="rawAmountInput" placeholder="Amount">
-          <select id="rawActionSelect">
-            <option value="add">Add stock (purchased)</option>
-            <option value="use">Use stock (consumed today)</option>
-          </select>
-          <button class="btn btn-primary" id="rawSubmitBtn">Save</button>
+          <button class="btn btn-primary" id="rawSubmitBtn" type="button">Record usage</button>
         </div>
       </div>
 
-      <h3>Current stock</h3>
+      <h3>Stock in the store</h3>
       <div class="card-grid" id="rawCardGrid"></div>
+
+      <div class="actions-row" data-roles="staff">
+        <button class="btn btn-primary" id="rawSaveBtn" type="button">Save</button>
+      </div>
     </section>
 
     <!-- ============================ OTHER MATERIALS ============================ -->
-    <section class="tab-panel" id="panel-other">
+    <section class="tab-panel" id="panel-other" data-roles="staff manager">
       <h2>Other Materials</h2>
 
       <div class="section-block">
-        <h3>Add stock or record daily usage</h3>
+        <h3 id="otherFormTitle">Record what was used today</h3>
         <div class="form-row">
-          <select id="otherMaterialSelect"></select>
-          <select id="otherActionSelect">
-            <option value="add">Add stock (purchased / restocked)</option>
-            <option value="use">Daily usage / spoilage entry</option>
-          </select>
+          <select id="otherMaterialSelect" aria-label="Material"></select>
+          <select id="otherActionSelect" aria-label="What to record" data-roles="manager"></select>
+        </div>
+        <div class="form-row" id="otherAddFields" hidden>
+          <div id="otherUnitOptions" class="unit-options"></div>
+          <input type="number" min="0" step="0.01" id="otherAmountInput" placeholder="Amount">
+        </div>
+        <div class="form-row" id="otherUseFields">
+          <input type="number" min="0" step="1" id="otherFieldA" placeholder="Used today">
+          <input type="number" min="0" step="1" id="otherFieldB" placeholder="Spoilt today">
         </div>
         <div class="form-row">
-          <div id="otherUnitOptions" class="unit-options"></div>
-          <div id="otherDailyFields" class="unit-options"></div>
-          <button class="btn btn-primary" id="otherSubmitBtn">Save</button>
+          <button class="btn btn-primary" id="otherSubmitBtn" type="button">Record usage</button>
         </div>
       </div>
 
-      <h3>Current stock</h3>
+      <h3>Stock in the store</h3>
       <div class="card-grid" id="otherCardGrid"></div>
 
-      <div class="section-block preform-block">
+      <div class="actions-row" data-roles="staff">
+        <button class="btn btn-primary" id="otherSaveBtn" type="button">Save</button>
+      </div>
+
+      <div class="section-block preform-block" data-roles="manager">
         <h3>Preform ↔ Bottle factory</h3>
         <p class="hint">1 preform bag = <span id="preformBagSizeHint"></span> pieces. 2 bottle bags = 1 preform bag.</p>
         <div class="preform-status">
@@ -119,21 +187,33 @@
         <div class="form-row">
           <label>Send preform bags to factory</label>
           <input type="number" min="0" step="1" id="preformSendInput" placeholder="Bags sent">
-          <button class="btn btn-secondary" id="preformSendBtn">Send</button>
+          <button class="btn btn-secondary" id="preformSendBtn" type="button">Send</button>
         </div>
         <div class="form-row">
           <label>Retrieve bottles from factory</label>
           <input type="number" min="0" step="1" id="preformBagsClosedInput" placeholder="Preform bags being closed out">
           <input type="number" min="0" step="1" id="preformBottlesReceivedInput" placeholder="Bottles actually received">
           <input type="number" min="1" step="1" id="preformPerBagInput" placeholder="Bottles per bag (default 600)">
-          <button class="btn btn-secondary" id="preformReceiveBtn">Confirm retrieval</button>
+          <button class="btn btn-secondary" id="preformReceiveBtn" type="button">Confirm retrieval</button>
         </div>
         <div id="preformResult" class="preform-result" hidden></div>
       </div>
     </section>
 
-    <!-- ============================ SETTINGS ============================ -->
-    <section class="tab-panel" id="panel-settings">
+    <!-- ============================ MANAGER: LOSS REVIEW ============================ -->
+    <section class="tab-panel" id="panel-losses" data-roles="manager">
+      <h2>Loss Review</h2>
+      <p class="hint">Spoilt, leaking and fermented juice reported by the staff. Losses <strong>from the factory</strong> come off the stock once you accept them. Losses <strong>from the super stores</strong> are listed for your information and need no approval.</p>
+
+      <h3>Waiting for your approval</h3>
+      <div id="lossPendingList"></div>
+
+      <h3 class="spaced">All entries (last 30 days)</h3>
+      <div class="table-scroll" id="lossReviewBody"></div>
+    </section>
+
+    <!-- ============================ MANAGER: SETTINGS ============================ -->
+    <section class="tab-panel" id="panel-settings" data-roles="manager">
       <h2>Settings</h2>
 
       <div class="section-block">
@@ -153,7 +233,7 @@
           </select>
           <label class="checkbox-label"><input type="checkbox" id="newMatSeasonal"> Seasonal (no threshold alerts)</label>
         </div>
-        <button class="btn btn-primary" id="addMaterialBtn">Add material</button>
+        <button class="btn btn-primary" id="addMaterialBtn" type="button">Add material</button>
       </div>
 
       <div class="section-block">
@@ -161,22 +241,27 @@
         <div class="form-row">
           <select id="thresholdMaterialSelect"></select>
           <input type="number" min="0" id="thresholdNewValue" placeholder="New threshold">
-          <button class="btn btn-secondary" id="setThresholdBtn">Update threshold</button>
+          <button class="btn btn-secondary" id="setThresholdBtn" type="button">Update threshold</button>
         </div>
         <div class="form-row">
           <select id="bagSizeMaterialSelect"></select>
           <input type="number" min="1" id="bagSizeNewValue" placeholder="New bag size">
-          <button class="btn btn-secondary" id="setBagSizeBtn">Update bag size</button>
+          <button class="btn btn-secondary" id="setBagSizeBtn" type="button">Update bag size</button>
         </div>
       </div>
 
       <div class="section-block">
         <h3>Correct stock on hand</h3>
+        <p class="hint">Type the <strong>total</strong> that is really in the store now (not an amount to add). Pick bags, half bags or custards the same way as when adding stock.</p>
+        <p class="current-line" id="correctCurrent"></p>
         <div class="form-row">
-          <select id="correctMaterialSelect"></select>
-          <input type="number" min="0" step="0.01" id="correctNewValue" placeholder="Correct amount">
+          <select id="correctMaterialSelect" aria-label="Material to correct"></select>
+        </div>
+        <div class="form-row">
+          <div id="correctUnitOptions" class="unit-options"></div>
+          <input type="number" min="0" step="0.01" id="correctNewValue" placeholder="Correct total">
           <input type="text" id="correctNote" placeholder="Reason (optional)">
-          <button class="btn btn-secondary" id="correctStockBtn">Save correction</button>
+          <button class="btn btn-secondary" id="correctStockBtn" type="button">Save correction</button>
         </div>
       </div>
 
@@ -185,7 +270,7 @@
         <div class="form-row">
           <select id="correctFjSelect"></select>
           <input type="number" min="0" id="correctFjValue" placeholder="Correct opening stock">
-          <button class="btn btn-secondary" id="correctFjBtn">Save</button>
+          <button class="btn btn-secondary" id="correctFjBtn" type="button">Save</button>
         </div>
       </div>
 
@@ -193,41 +278,58 @@
         <h3>Add a new juice flavour</h3>
         <div class="form-row">
           <input type="text" id="newFlavourName" placeholder="Flavour name">
-          <button class="btn btn-primary" id="addFlavourBtn">Add flavour</button>
+          <button class="btn btn-primary" id="addFlavourBtn" type="button">Add flavour</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Change a login password</h3>
+        <p class="hint">The staff and manager passwords start as the defaults you were given. Change them here at any time.</p>
+        <div class="form-row">
+          <select id="pwRoleSelect">
+            <option value="staff">Inventory staff</option>
+            <option value="manager">Inventory manager</option>
+          </select>
+          <input type="password" id="pwNew" placeholder="New password" autocomplete="new-password">
+          <input type="password" id="pwConfirm" placeholder="Type it again" autocomplete="new-password">
+          <button class="btn btn-secondary" id="pwSaveBtn" type="button">Change password</button>
         </div>
       </div>
 
       <div class="section-block danger-block">
         <h3>Clear all entries</h3>
         <p class="hint">First use clears everything for testing, no password needed. Every use after that needs the fixed developer password.</p>
-        <button class="btn btn-danger" id="clearAllBtn">Clear all entries</button>
+        <button class="btn btn-danger" id="clearAllBtn" type="button">Clear all entries</button>
       </div>
     </section>
 
-    <!-- ============================ WHATSAPP REPORT ============================ -->
-    <section class="tab-panel" id="panel-whatsapp">
+    <!-- ============================ MANAGER: WHATSAPP REPORT ============================ -->
+    <section class="tab-panel" id="panel-whatsapp" data-roles="manager">
       <h2>Send Report to WhatsApp</h2>
-      <p class="hint">Builds one clear image of today's activity — what each tab started with, what was used, and what's left.</p>
-      <button class="btn btn-primary" id="buildReportBtn">Build today's report</button>
+      <p class="hint">Builds one clear image of everything entered today — what each area started with, what was used, and what's left.</p>
+      <p class="current-line" id="lastClosedInfo"></p>
+      <button class="btn btn-primary" id="buildReportBtn" type="button">Generate today's report</button>
       <div id="reportCard" class="report-card"></div>
-      <button class="btn btn-secondary" id="downloadReportBtn" hidden>Download image</button>
+      <button class="btn btn-secondary" id="downloadReportBtn" type="button" hidden>Download image</button>
 
       <div class="actions-row rollover-row">
-        <p class="hint">Once today's report is sent, close the day to save today's closing figures as tomorrow's opening stock.</p>
-        <button class="btn btn-primary" id="fjCloseDayBtn">Close today &amp; roll to tomorrow</button>
+        <p class="hint">When the report has been sent, close the day. Today's report is saved to the database and today's closing figures become tomorrow's opening stock.</p>
+        <button class="btn btn-primary" id="fjCloseDayBtn" type="button">Close today &amp; roll to tomorrow</button>
+        <p class="hint auto-note"><strong>If you forget:</strong> any device that has the site open at 11:59 PM closes the day for you, and saves the report. If nobody has the site open at that time, the day is closed the first moment anyone opens the site afterwards. Either way nothing is lost, and nothing is closed on a day with no entries.</p>
       </div>
     </section>
 
     <!-- ============================ RECORDS & HISTORY ============================ -->
-    <section class="tab-panel" id="panel-records">
+    <section class="tab-panel" id="panel-records" data-roles="staff manager">
       <h2>Records &amp; History</h2>
 
       <div class="subtabs" id="recordsSubtabNav">
-        <button class="subtab-btn active" data-subtab="daily">Daily Records</button>
-        <button class="subtab-btn" data-subtab="summary">Summary</button>
+        <button class="subtab-btn active" data-subtab="daily" type="button">Daily Records</button>
+        <button class="subtab-btn" data-subtab="summary" type="button">Summary</button>
+        <button class="subtab-btn" data-subtab="losses" type="button">Spoilt / Leaking / Fermented</button>
       </div>
 
-      <!-- ===== Daily Records sub-tab ===== -->
+      <!-- ===== Daily Records ===== -->
       <div class="subtab-panel active" id="subpanel-daily">
         <div class="form-row">
           <label>From</label>
@@ -240,13 +342,13 @@
             <option value="raw">Raw Materials</option>
             <option value="other">Other Materials</option>
           </select>
-          <button class="btn btn-secondary" id="recordsResetBtn">Reset to today</button>
+          <button class="btn btn-secondary" id="recordsResetBtn" type="button">Reset to today</button>
         </div>
-        <p class="hint">Shows up to 62 days at a time, most recent first — for a longer stretch use the Summary tab instead.</p>
+        <p class="hint">Shows up to 62 days at a time, most recent first. Each day is its own block, ending with a clear "end of day" line.</p>
         <div id="recordsDaily"></div>
       </div>
 
-      <!-- ===== Summary sub-tab ===== -->
+      <!-- ===== Summary ===== -->
       <div class="subtab-panel" id="subpanel-summary">
         <div class="form-row">
           <label>Period</label>
@@ -259,11 +361,47 @@
         </div>
         <div id="summaryBody"></div>
       </div>
+
+      <!-- ===== Spoilt / Leaking / Fermented ===== -->
+      <div class="subtab-panel" id="subpanel-losses">
+        <div class="form-row">
+          <label>From</label>
+          <input type="date" id="lossFrom">
+          <label>To</label>
+          <input type="date" id="lossTo">
+        </div>
+        <div class="form-row">
+          <select id="lossCategory" aria-label="Type">
+            <option value="">All types</option>
+            <option value="expired">Expired / spoilt</option>
+            <option value="fermented">Fermented</option>
+            <option value="leaking">Leaking</option>
+          </select>
+          <select id="lossSource" aria-label="Where from">
+            <option value="">Super stores &amp; factory</option>
+            <option value="stores">From super stores</option>
+            <option value="factory">From factory</option>
+          </select>
+          <select id="lossStatus" aria-label="Status">
+            <option value="">Any status</option>
+            <option value="pending">Waiting for manager</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Declined</option>
+            <option value="noaction">No approval needed</option>
+          </select>
+        </div>
+        <div id="lossBody"></div>
+      </div>
     </section>
 
-    <!-- ============================ NOTIFICATIONS ============================ -->
-    <section class="tab-panel" id="panel-notifications">
+    <!-- ============================ MANAGER: NOTIFICATIONS ============================ -->
+    <section class="tab-panel" id="panel-notifications" data-roles="manager">
       <h2>Notifications</h2>
+
+      <h3>Factory losses waiting for your approval</h3>
+      <div id="approvalList"></div>
+
+      <h3 class="spaced">Running low</h3>
       <p class="hint">Seasonal crops never appear here — shortages of those are expected.</p>
       <div class="card-grid" id="notifCardGrid"></div>
       <p class="empty-state" id="notifEmptyState" hidden>Everything is above threshold right now.</p>
@@ -271,6 +409,8 @@
 
   </main>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module" src="js/app.js"></script>
