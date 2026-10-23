@@ -475,6 +475,21 @@ function opAddMaterial(s, a) {
   });
 }
 
+function opRemoveMaterial(s, a) {
+  // Only materials added through Settings can be removed; the built-in ones cannot.
+  if (!String(a.matId).startsWith("custom_")) return;
+  const m = findMat(s, a.matId);
+  if (!m) return;
+  s.materials.raw = s.materials.raw.filter(x => x.id !== a.matId);
+  s.materials.other = s.materials.other.filter(x => x.id !== a.matId);
+  delete s.rawStock[a.matId];
+  delete s.otherStock[a.matId];
+  pushRecord(s, {
+    id: a.recId, date: s.businessDate, tab: "settings", item: m.name,
+    action: "Material removed", detail: "Removed from the list", amount: "", matId: m.id
+  });
+}
+
 function opSetThreshold(s, a) {
   const m = findMat(s, a.matId);
   if (!m) return;
@@ -557,7 +572,7 @@ const OPS = {
   addStock: opAddStock, useStock: opUseStock, correctStock: opCorrectStock,
   sendPreform: opSendPreform, receiveBottles: opReceiveBottles,
   setFjField: opSetFjField, logDefect: opLogDefect, decideDefect: opDecideDefect, removeDefect: opRemoveDefect,
-  addFlavour: opAddFlavour, addMaterial: opAddMaterial, setThreshold: opSetThreshold,
+  addFlavour: opAddFlavour, addMaterial: opAddMaterial, removeMaterial: opRemoveMaterial, setThreshold: opSetThreshold,
   setBagSize: opSetBagSize, setOpening: opSetOpening, setPassword: opSetPassword,
   clearAll: opClearAll, closeDay: opCloseDay, advanceDate: opAdvanceDate
 };
@@ -844,6 +859,8 @@ export const Store = (() => {
     return id;
   }
 
+  const removeMaterial = id => { dispatch("removeMaterial", { matId: id, recId: rid() }); };
+
   const setThreshold = (id, value) => { dispatch("setThreshold", { matId: id, value, recId: rid() }); };
   const setBagSize = (id, value) => { dispatch("setBagSize", { matId: id, value, recId: rid() }); };
   const setOpeningStock = (id, value) => { dispatch("setOpening", { id, value, recId: rid() }); };
@@ -943,7 +960,7 @@ export const Store = (() => {
     addStock, useStock, correctStock, sendPreformToFactory, receiveBottlesFromFactory,
     updateFreshJuiceField, computedFreshJuice, labelFor2, allFreshJuiceMeta, allFreshJuiceIds,
     logDefect, decideDefect, removeDefect, pendingDefects,
-    addFlavour, addMaterial, setThreshold, setBagSize, setOpeningStock, clearAll, clearStoredReports,
+    addFlavour, addMaterial, removeMaterial, setThreshold, setBagSize, setOpeningStock, clearAll, clearStoredReports,
     closeDay, checkAutoClose, liveDay, loadDays, loadDefects,
     verifyLogin, setPassword,
     loadState, flushNow, onRemoteChange, setSaveHandlers, hasPending,

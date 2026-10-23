@@ -85,6 +85,13 @@ function cardHtml(m, category) {
       <div class="sub sub-small">${units} · ${m.bagSize} per bag</div>
     </div>`;
   }
+  // Coconut shows the pieces count only (no second line).
+  if (m.id === "coconut") {
+    return `<div class="mat-card ${low ? "low" : ""}">
+    <h4>${esc(m.name)}</h4>
+    <div class="qty">${units}</div>
+  </div>`;
+  }
   const sub = m.bagSize ? `${fmt(bags)} bag(s) · ${m.bagSize} per bag` : (m.seasonal ? "Seasonal" : "");
   return `<div class="mat-card ${low ? "low" : ""}">
     <h4>${esc(m.name)}</h4>

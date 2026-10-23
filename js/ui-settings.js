@@ -37,6 +37,14 @@ export function populateSettingsSelects() {
   keep($("#correctMaterialSelect"), opts);
   keep($("#bagSizeMaterialSelect"), allMaterials().filter(m => m.bagSizeEditable)
     .map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join(""));
+  const added = [
+    ...Store.state.materials.raw.filter(m => String(m.id).startsWith("custom_")).map(m => ({ m, cat: "Raw materials" })),
+    ...Store.state.materials.other.filter(m => String(m.id).startsWith("custom_")).map(m => ({ m, cat: "Other materials" }))
+  ];
+  keep($("#removeMatSelect"), added.length
+    ? added.map(({ m, cat }) => `<option value="${esc(m.id)}">${esc(m.name)} — ${cat} (${esc(describeStock(m))})</option>`).join("")
+    : `<option value="">No added materials to remove</option>`);
+  $("#removeMatBtn").disabled = !added.length;
   keep($("#correctFjSelect"), Store.allFreshJuiceMeta()
     .map(f => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join(""));
   syncCorrectForm();
@@ -66,6 +74,15 @@ export function initSettings() {
     ["newMatName", "newMatUnit", "newMatBagSize", "newMatThreshold"].forEach(id => { $("#" + id).value = ""; });
     $("#newMatSeasonal").checked = false;
     toast(`${name} added.`, "ok");
+    notifyChanged();
+  });
+
+  $("#removeMatBtn").addEventListener("click", () => {
+    const m = Store.findMaterial($("#removeMatSelect").value);
+    if (!m) { toast("Nothing to remove.", "warn"); return; }
+    if (!confirm(`Remove "${m.name}" (${describeStock(m)}) from the site? Its past records stay in Records & History.`)) return;
+    Store.removeMaterial(m.id);
+    toast(`${m.name} removed.`, "ok");
     notifyChanged();
   });
 

@@ -19,7 +19,7 @@ export function toast(message, kind = "info") {
   toastTimer = setTimeout(() => el.classList.remove("show"), 5000);
 }
 
-// Screens call this after they change something; app.js re-draws everything.
+// Screens call this after they change something; main.js re-draws everything.
 export function notifyChanged() {
   window.dispatchEvent(new CustomEvent("ithri:changed"));
 }
